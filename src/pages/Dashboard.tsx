@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../contexts/DataContext';
 import { CalendarDays, AlertTriangle } from 'lucide-react';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const Dashboard: React.FC = () => {
   const { 
@@ -12,7 +13,8 @@ const Dashboard: React.FC = () => {
     getCompanyById,
     companies,
     units,
-    sectors
+    sectors,
+    loading
   } = useData();
   
   const [selectedCompany, setSelectedCompany] = useState<string>('');
@@ -102,6 +104,15 @@ const Dashboard: React.FC = () => {
     if (daysRemaining <= 30) return 'bg-amber-100 text-amber-800';
     return 'bg-green-100 text-green-800';
   };
+
+  if (loading) {
+    return (
+      <div className="container mx-auto">
+        <h1 className="text-2xl font-bold mb-6">Dashboard</h1>
+        <LoadingSpinner text="Carregando dados..." />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto">

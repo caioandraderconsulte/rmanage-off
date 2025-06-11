@@ -11,6 +11,7 @@ import EquipmentForm from './pages/EquipmentForm';
 import InspectionForm from './pages/InspectionForm';
 import InspectionDetails from './pages/InspectionDetails';
 import Search from './pages/Search';
+import LoadingSpinner from './components/LoadingSpinner';
 
 function App() {
   return (

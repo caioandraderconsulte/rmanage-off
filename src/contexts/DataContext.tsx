@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 import { 
   Company, 
@@ -16,16 +17,17 @@ interface DataContextType {
   equipments: Equipment[];
   inspections: Inspection[];
   equipmentTypes: EquipmentType[];
-  addCompany: (company: Company) => void;
-  updateCompany: (company: Company) => void;
-  addUnit: (unit: Unit) => void;
-  updateUnit: (unit: Unit) => void;
-  addSector: (sector: Sector) => void;
-  updateSector: (sector: Sector) => void;
-  addEquipment: (equipment: Equipment) => void;
-  updateEquipment: (equipment: Equipment) => void;
-  addInspection: (inspection: Inspection) => void;
-  updateInspection: (inspection: Inspection) => void;
+  loading: boolean;
+  addCompany: (company: Company) => Promise<void>;
+  updateCompany: (company: Company) => Promise<void>;
+  addUnit: (unit: Unit) => Promise<void>;
+  updateUnit: (unit: Unit) => Promise<void>;
+  addSector: (sector: Sector) => Promise<void>;
+  updateSector: (sector: Sector) => Promise<void>;
+  addEquipment: (equipment: Equipment) => Promise<void>;
+  updateEquipment: (equipment: Equipment) => Promise<void>;
+  addInspection: (inspection: Inspection) => Promise<void>;
+  updateInspection: (inspection: Inspection) => Promise<void>;
   getCompanyById: (id: string) => Company | undefined;
   getUnitById: (id: string) => Unit | undefined;
   getSectorById: (id: string) => Sector | undefined;
@@ -40,16 +42,6 @@ interface DataContextType {
   exportToCSV: (data: any[]) => void;
 }
 
-// Initial data for equipment types
-const initialEquipmentTypes: EquipmentType[] = [
-  { code: 'SF', name: 'Sensor de Fumaça' },
-  { code: 'SC', name: 'Sensor de Calor' },
-  { code: 'AL', name: 'Alarme' },
-  { code: 'AV', name: 'Avisador' },
-  { code: 'EX', name: 'Extintor' },
-  { code: 'HD', name: 'Hidrante' },
-];
-
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -58,43 +50,116 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [sectors, setSectors] = useState<Sector[]>([]);
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [inspections, setInspections] = useState<Inspection[]>([]);
-  const [equipmentTypes] = useState<EquipmentType[]>(initialEquipmentTypes);
+  const [equipmentTypes, setEquipmentTypes] = useState<EquipmentType[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Load data from localStorage on component mount
+  // Load data from Supabase on component mount
   useEffect(() => {
-    const loadedCompanies = localStorage.getItem('companies');
-    const loadedUnits = localStorage.getItem('units');
-    const loadedSectors = localStorage.getItem('sectors');
-    const loadedEquipments = localStorage.getItem('equipments');
-    const loadedInspections = localStorage.getItem('inspections');
-
-    if (loadedCompanies) setCompanies(JSON.parse(loadedCompanies));
-    if (loadedUnits) setUnits(JSON.parse(loadedUnits));
-    if (loadedSectors) setSectors(JSON.parse(loadedSectors));
-    if (loadedEquipments) setEquipments(JSON.parse(loadedEquipments));
-    if (loadedInspections) setInspections(JSON.parse(loadedInspections));
+    loadAllData();
   }, []);
 
-  // Save data to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('companies', JSON.stringify(companies));
-  }, [companies]);
+  const loadAllData = async () => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        loadCompanies(),
+        loadUnits(),
+        loadSectors(),
+        loadEquipments(),
+        loadInspections(),
+        loadEquipmentTypes()
+      ]);
+    } catch (error) {
+      console.error('Error loading data:', error);
+      toast.error('Erro ao carregar dados');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  useEffect(() => {
-    localStorage.setItem('units', JSON.stringify(units));
-  }, [units]);
+  const loadCompanies = async () => {
+    const { data, error } = await supabase
+      .from('companies')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error loading companies:', error);
+      return;
+    }
+    
+    setCompanies(data || []);
+  };
 
-  useEffect(() => {
-    localStorage.setItem('sectors', JSON.stringify(sectors));
-  }, [sectors]);
+  const loadUnits = async () => {
+    const { data, error } = await supabase
+      .from('units')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error loading units:', error);
+      return;
+    }
+    
+    setUnits(data || []);
+  };
 
-  useEffect(() => {
-    localStorage.setItem('equipments', JSON.stringify(equipments));
-  }, [equipments]);
+  const loadSectors = async () => {
+    const { data, error } = await supabase
+      .from('sectors')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error loading sectors:', error);
+      return;
+    }
+    
+    setSectors(data || []);
+  };
 
-  useEffect(() => {
-    localStorage.setItem('inspections', JSON.stringify(inspections));
-  }, [inspections]);
+  const loadEquipments = async () => {
+    const { data, error } = await supabase
+      .from('equipment')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error loading equipment:', error);
+      return;
+    }
+    
+    setEquipments(data || []);
+  };
+
+  const loadInspections = async () => {
+    const { data, error } = await supabase
+      .from('inspections')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error loading inspections:', error);
+      return;
+    }
+    
+    setInspections(data || []);
+  };
+
+  const loadEquipmentTypes = async () => {
+    const { data, error } = await supabase
+      .from('equipment_types')
+      .select('*')
+      .order('code');
+    
+    if (error) {
+      console.error('Error loading equipment types:', error);
+      return;
+    }
+    
+    setEquipmentTypes(data || []);
+  };
 
   // Generate code from name (first 3 characters, uppercase)
   const generateCode = (name: string): string => {
@@ -102,124 +167,346 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   // CRUD functions for companies
-  const addCompany = (company: Company) => {
-    const existingCompany = companies.find(c => c.name === company.name);
-    if (existingCompany) {
-      toast.error('Empresa com este nome já existe!');
-      return;
+  const addCompany = async (company: Company) => {
+    try {
+      const existingCompany = companies.find(c => c.name === company.name);
+      if (existingCompany) {
+        toast.error('Empresa com este nome já existe!');
+        return;
+      }
+      
+      const newCompany = { 
+        ...company,
+        code: generateCode(company.name),
+        date: new Date().toISOString()
+      };
+      
+      const { data, error } = await supabase
+        .from('companies')
+        .insert([newCompany])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error adding company:', error);
+        toast.error('Erro ao adicionar empresa');
+        return;
+      }
+      
+      setCompanies([data, ...companies]);
+      toast.success('Empresa adicionada com sucesso!');
+    } catch (error) {
+      console.error('Error adding company:', error);
+      toast.error('Erro ao adicionar empresa');
     }
-    
-    const newCompany = { 
-      ...company,
-      id: Date.now().toString(),
-      code: generateCode(company.name),
-      date: new Date().toISOString()
-    };
-    
-    setCompanies([...companies, newCompany]);
-    toast.success('Empresa adicionada com sucesso!');
   };
 
-  const updateCompany = (company: Company) => {
-    const existingCompany = companies.find(c => c.name === company.name && c.id !== company.id);
-    if (existingCompany) {
-      toast.error('Empresa com este nome já existe!');
-      return;
-    }
+  const updateCompany = async (company: Company) => {
+    try {
+      const existingCompany = companies.find(c => c.name === company.name && c.id !== company.id);
+      if (existingCompany) {
+        toast.error('Empresa com este nome já existe!');
+        return;
+      }
 
-    setCompanies(companies.map(c => c.id === company.id ? company : c));
-    toast.success('Empresa atualizada com sucesso!');
+      const { error } = await supabase
+        .from('companies')
+        .update(company)
+        .eq('id', company.id);
+      
+      if (error) {
+        console.error('Error updating company:', error);
+        toast.error('Erro ao atualizar empresa');
+        return;
+      }
+      
+      setCompanies(companies.map(c => c.id === company.id ? company : c));
+      toast.success('Empresa atualizada com sucesso!');
+    } catch (error) {
+      console.error('Error updating company:', error);
+      toast.error('Erro ao atualizar empresa');
+    }
   };
 
   // CRUD functions for units
-  const addUnit = (unit: Unit) => {
-    const existingUnit = units.find(u => u.name === unit.name && u.companyId === unit.companyId);
-    if (existingUnit) {
-      toast.error('Unidade com este nome já existe para esta empresa!');
-      return;
+  const addUnit = async (unit: Unit) => {
+    try {
+      const existingUnit = units.find(u => u.name === unit.name && u.companyId === unit.companyId);
+      if (existingUnit) {
+        toast.error('Unidade com este nome já existe para esta empresa!');
+        return;
+      }
+      
+      const newUnit = { 
+        ...unit,
+        company_id: unit.companyId,
+        code: generateCode(unit.name)
+      };
+      
+      const { data, error } = await supabase
+        .from('units')
+        .insert([newUnit])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error adding unit:', error);
+        toast.error('Erro ao adicionar unidade');
+        return;
+      }
+      
+      const formattedUnit = {
+        ...data,
+        companyId: data.company_id
+      };
+      
+      setUnits([formattedUnit, ...units]);
+      toast.success('Unidade adicionada com sucesso!');
+    } catch (error) {
+      console.error('Error adding unit:', error);
+      toast.error('Erro ao adicionar unidade');
     }
-    
-    const newUnit = { 
-      ...unit,
-      id: Date.now().toString(),
-      code: generateCode(unit.name)
-    };
-    
-    setUnits([...units, newUnit]);
-    toast.success('Unidade adicionada com sucesso!');
   };
 
-  const updateUnit = (unit: Unit) => {
-    const existingUnit = units.find(u => u.name === unit.name && u.companyId === unit.companyId && u.id !== unit.id);
-    if (existingUnit) {
-      toast.error('Unidade com este nome já existe para esta empresa!');
-      return;
-    }
+  const updateUnit = async (unit: Unit) => {
+    try {
+      const existingUnit = units.find(u => u.name === unit.name && u.companyId === unit.companyId && u.id !== unit.id);
+      if (existingUnit) {
+        toast.error('Unidade com este nome já existe para esta empresa!');
+        return;
+      }
 
-    setUnits(units.map(u => u.id === unit.id ? unit : u));
-    toast.success('Unidade atualizada com sucesso!');
+      const updateData = {
+        ...unit,
+        company_id: unit.companyId
+      };
+
+      const { error } = await supabase
+        .from('units')
+        .update(updateData)
+        .eq('id', unit.id);
+      
+      if (error) {
+        console.error('Error updating unit:', error);
+        toast.error('Erro ao atualizar unidade');
+        return;
+      }
+      
+      setUnits(units.map(u => u.id === unit.id ? unit : u));
+      toast.success('Unidade atualizada com sucesso!');
+    } catch (error) {
+      console.error('Error updating unit:', error);
+      toast.error('Erro ao atualizar unidade');
+    }
   };
 
   // CRUD functions for sectors
-  const addSector = (sector: Sector) => {
-    const existingSector = sectors.find(s => s.name === sector.name && s.unitId === sector.unitId);
-    if (existingSector) {
-      toast.error('Setor com este nome já existe para esta unidade!');
-      return;
+  const addSector = async (sector: Sector) => {
+    try {
+      const existingSector = sectors.find(s => s.name === sector.name && s.unitId === sector.unitId);
+      if (existingSector) {
+        toast.error('Setor com este nome já existe para esta unidade!');
+        return;
+      }
+      
+      const newSector = { 
+        ...sector,
+        unit_id: sector.unitId,
+        code: generateCode(sector.name)
+      };
+      
+      const { data, error } = await supabase
+        .from('sectors')
+        .insert([newSector])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error adding sector:', error);
+        toast.error('Erro ao adicionar setor');
+        return;
+      }
+      
+      const formattedSector = {
+        ...data,
+        unitId: data.unit_id
+      };
+      
+      setSectors([formattedSector, ...sectors]);
+      toast.success('Setor adicionado com sucesso!');
+    } catch (error) {
+      console.error('Error adding sector:', error);
+      toast.error('Erro ao adicionar setor');
     }
-    
-    const newSector = { 
-      ...sector,
-      id: Date.now().toString(),
-      code: generateCode(sector.name)
-    };
-    
-    setSectors([...sectors, newSector]);
-    toast.success('Setor adicionado com sucesso!');
   };
 
-  const updateSector = (sector: Sector) => {
-    const existingSector = sectors.find(s => s.name === sector.name && s.unitId === sector.unitId && s.id !== sector.id);
-    if (existingSector) {
-      toast.error('Setor com este nome já existe para esta unidade!');
-      return;
-    }
+  const updateSector = async (sector: Sector) => {
+    try {
+      const existingSector = sectors.find(s => s.name === sector.name && s.unitId === sector.unitId && s.id !== sector.id);
+      if (existingSector) {
+        toast.error('Setor com este nome já existe para esta unidade!');
+        return;
+      }
 
-    setSectors(sectors.map(s => s.id === sector.id ? sector : s));
-    toast.success('Setor atualizado com sucesso!');
+      const updateData = {
+        ...sector,
+        unit_id: sector.unitId
+      };
+
+      const { error } = await supabase
+        .from('sectors')
+        .update(updateData)
+        .eq('id', sector.id);
+      
+      if (error) {
+        console.error('Error updating sector:', error);
+        toast.error('Erro ao atualizar setor');
+        return;
+      }
+      
+      setSectors(sectors.map(s => s.id === sector.id ? sector : s));
+      toast.success('Setor atualizado com sucesso!');
+    } catch (error) {
+      console.error('Error updating sector:', error);
+      toast.error('Erro ao atualizar setor');
+    }
   };
 
   // CRUD functions for equipments
-  const addEquipment = (equipment: Equipment) => {
-    const newEquipment = { 
-      ...equipment,
-      id: Date.now().toString()
-    };
-    
-    setEquipments([...equipments, newEquipment]);
-    toast.success('Equipamento adicionado com sucesso!');
+  const addEquipment = async (equipment: Equipment) => {
+    try {
+      const newEquipment = { 
+        ...equipment,
+        sector_id: equipment.sectorId,
+        type_code: equipment.typeCode,
+        final_code: equipment.finalCode
+      };
+      
+      const { data, error } = await supabase
+        .from('equipment')
+        .insert([newEquipment])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error adding equipment:', error);
+        toast.error('Erro ao adicionar equipamento');
+        return;
+      }
+      
+      const formattedEquipment = {
+        ...data,
+        sectorId: data.sector_id,
+        typeCode: data.type_code,
+        finalCode: data.final_code
+      };
+      
+      setEquipments([formattedEquipment, ...equipments]);
+      toast.success('Equipamento adicionado com sucesso!');
+    } catch (error) {
+      console.error('Error adding equipment:', error);
+      toast.error('Erro ao adicionar equipamento');
+    }
   };
 
-  const updateEquipment = (equipment: Equipment) => {
-    setEquipments(equipments.map(e => e.id === equipment.id ? equipment : e));
-    toast.success('Equipamento atualizado com sucesso!');
+  const updateEquipment = async (equipment: Equipment) => {
+    try {
+      const updateData = {
+        ...equipment,
+        sector_id: equipment.sectorId,
+        type_code: equipment.typeCode,
+        final_code: equipment.finalCode
+      };
+
+      const { error } = await supabase
+        .from('equipment')
+        .update(updateData)
+        .eq('id', equipment.id);
+      
+      if (error) {
+        console.error('Error updating equipment:', error);
+        toast.error('Erro ao atualizar equipamento');
+        return;
+      }
+      
+      setEquipments(equipments.map(e => e.id === equipment.id ? equipment : e));
+      toast.success('Equipamento atualizado com sucesso!');
+    } catch (error) {
+      console.error('Error updating equipment:', error);
+      toast.error('Erro ao atualizar equipamento');
+    }
   };
 
   // CRUD functions for inspections
-  const addInspection = (inspection: Inspection) => {
-    const newInspection = { 
-      ...inspection,
-      id: Date.now().toString(),
-      date: new Date().toISOString()
-    };
-    
-    setInspections([...inspections, newInspection]);
-    toast.success('Inspeção registrada com sucesso!');
+  const addInspection = async (inspection: Inspection) => {
+    try {
+      const newInspection = { 
+        ...inspection,
+        equipment_id: inspection.equipmentId,
+        description_photo: inspection.descriptionPhoto,
+        malfunction_description: inspection.malfunctionDescription,
+        malfunction_photo: inspection.malfunctionPhoto,
+        next_date: inspection.nextDate,
+        date: new Date().toISOString()
+      };
+      
+      const { data, error } = await supabase
+        .from('inspections')
+        .insert([newInspection])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error adding inspection:', error);
+        toast.error('Erro ao registrar inspeção');
+        return;
+      }
+      
+      const formattedInspection = {
+        ...data,
+        equipmentId: data.equipment_id,
+        descriptionPhoto: data.description_photo,
+        malfunctionDescription: data.malfunction_description,
+        malfunctionPhoto: data.malfunction_photo,
+        nextDate: data.next_date
+      };
+      
+      setInspections([formattedInspection, ...inspections]);
+      toast.success('Inspeção registrada com sucesso!');
+    } catch (error) {
+      console.error('Error adding inspection:', error);
+      toast.error('Erro ao registrar inspeção');
+    }
   };
 
-  const updateInspection = (inspection: Inspection) => {
-    setInspections(inspections.map(i => i.id === inspection.id ? inspection : i));
-    toast.success('Inspeção atualizada com sucesso!');
+  const updateInspection = async (inspection: Inspection) => {
+    try {
+      const updateData = {
+        ...inspection,
+        equipment_id: inspection.equipmentId,
+        description_photo: inspection.descriptionPhoto,
+        malfunction_description: inspection.malfunctionDescription,
+        malfunction_photo: inspection.malfunctionPhoto,
+        next_date: inspection.nextDate
+      };
+
+      const { error } = await supabase
+        .from('inspections')
+        .update(updateData)
+        .eq('id', inspection.id);
+      
+      if (error) {
+        console.error('Error updating inspection:', error);
+        toast.error('Erro ao atualizar inspeção');
+        return;
+      }
+      
+      setInspections(inspections.map(i => i.id === inspection.id ? inspection : i));
+      toast.success('Inspeção atualizada com sucesso!');
+    } catch (error) {
+      console.error('Error updating inspection:', error);
+      toast.error('Erro ao atualizar inspeção');
+    }
   };
 
   // Helper functions to get entities by ID
@@ -303,6 +590,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     equipments,
     inspections,
     equipmentTypes,
+    loading,
     addCompany,
     updateCompany,
     addUnit,

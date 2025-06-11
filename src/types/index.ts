@@ -54,3 +54,11 @@ export interface EquipmentType {
   code: string;
   name: string;
 }
+
+export interface Booking {
+  id: string;
+  userEmail: string;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+}
