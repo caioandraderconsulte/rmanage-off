@@ -88,7 +88,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
     
-    setCompanies(data || []);
+    // Transform database format to frontend format
+    const transformedData = (data || []).map(company => ({
+      ...company,
+      centralModel: company.central_model || '',
+      cbProject: company.cb_project || ''
+    }));
+    
+    setCompanies(transformedData);
   };
 
   const loadUnits = async () => {
@@ -102,7 +109,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
     
-    setUnits(data || []);
+    // Transform database format to frontend format
+    const transformedData = (data || []).map(unit => ({
+      ...unit,
+      companyId: unit.company_id
+    }));
+    
+    setUnits(transformedData);
   };
 
   const loadSectors = async () => {
@@ -116,7 +129,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
     
-    setSectors(data || []);
+    // Transform database format to frontend format
+    const transformedData = (data || []).map(sector => ({
+      ...sector,
+      unitId: sector.unit_id
+    }));
+    
+    setSectors(transformedData);
   };
 
   const loadEquipments = async () => {
@@ -130,7 +149,15 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
     
-    setEquipments(data || []);
+    // Transform database format to frontend format
+    const transformedData = (data || []).map(equipment => ({
+      ...equipment,
+      sectorId: equipment.sector_id,
+      typeCode: equipment.type_code,
+      finalCode: equipment.final_code
+    }));
+    
+    setEquipments(transformedData);
   };
 
   const loadInspections = async () => {
@@ -144,7 +171,17 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
     
-    setInspections(data || []);
+    // Transform database format to frontend format
+    const transformedData = (data || []).map(inspection => ({
+      ...inspection,
+      equipmentId: inspection.equipment_id,
+      descriptionPhoto: inspection.description_photo,
+      malfunctionDescription: inspection.malfunction_description,
+      malfunctionPhoto: inspection.malfunction_photo,
+      nextDate: inspection.next_date
+    }));
+    
+    setInspections(transformedData);
   };
 
   const loadEquipmentTypes = async () => {
@@ -175,8 +212,18 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
       
+      // Transform frontend format to database format
       const newCompany = { 
-        ...company,
+        name: company.name,
+        address: company.address || '',
+        phone: company.phone || '',
+        website: company.website || '',
+        email: company.email || '',
+        responsible: company.responsible || '',
+        manufacturer: company.manufacturer || '',
+        central_model: company.centralModel || '',
+        cb_project: company.cbProject || '',
+        avcb: company.avcb || '',
         code: generateCode(company.name),
         date: new Date().toISOString()
       };
@@ -193,7 +240,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
       
-      setCompanies([data, ...companies]);
+      // Transform back to frontend format
+      const transformedCompany = {
+        ...data,
+        centralModel: data.central_model || '',
+        cbProject: data.cb_project || ''
+      };
+      
+      setCompanies([transformedCompany, ...companies]);
       toast.success('Empresa adicionada com sucesso!');
     } catch (error) {
       console.error('Error adding company:', error);
@@ -209,9 +263,25 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return;
       }
 
+      // Transform frontend format to database format
+      const updateData = {
+        name: company.name,
+        address: company.address || '',
+        phone: company.phone || '',
+        website: company.website || '',
+        email: company.email || '',
+        responsible: company.responsible || '',
+        manufacturer: company.manufacturer || '',
+        central_model: company.centralModel || '',
+        cb_project: company.cbProject || '',
+        avcb: company.avcb || '',
+        code: company.code,
+        date: company.date
+      };
+
       const { error } = await supabase
         .from('companies')
-        .update(company)
+        .update(updateData)
         .eq('id', company.id);
       
       if (error) {
@@ -238,7 +308,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
       
       const newUnit = { 
-        ...unit,
+        name: unit.name,
         company_id: unit.companyId,
         code: generateCode(unit.name)
       };
@@ -277,8 +347,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       const updateData = {
-        ...unit,
-        company_id: unit.companyId
+        name: unit.name,
+        company_id: unit.companyId,
+        code: unit.code
       };
 
       const { error } = await supabase
@@ -310,7 +381,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
       
       const newSector = { 
-        ...sector,
+        name: sector.name,
         unit_id: sector.unitId,
         code: generateCode(sector.name)
       };
@@ -349,8 +420,9 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       const updateData = {
-        ...sector,
-        unit_id: sector.unitId
+        name: sector.name,
+        unit_id: sector.unitId,
+        code: sector.code
       };
 
       const { error } = await supabase
@@ -376,9 +448,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const addEquipment = async (equipment: Equipment) => {
     try {
       const newEquipment = { 
-        ...equipment,
         sector_id: equipment.sectorId,
         type_code: equipment.typeCode,
+        model: equipment.model,
+        loop: equipment.loop,
+        central: equipment.central || '',
         final_code: equipment.finalCode
       };
       
@@ -412,9 +486,11 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateEquipment = async (equipment: Equipment) => {
     try {
       const updateData = {
-        ...equipment,
         sector_id: equipment.sectorId,
         type_code: equipment.typeCode,
+        model: equipment.model,
+        loop: equipment.loop,
+        central: equipment.central || '',
         final_code: equipment.finalCode
       };
 
@@ -441,11 +517,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const addInspection = async (inspection: Inspection) => {
     try {
       const newInspection = { 
-        ...inspection,
         equipment_id: inspection.equipmentId,
-        description_photo: inspection.descriptionPhoto,
-        malfunction_description: inspection.malfunctionDescription,
-        malfunction_photo: inspection.malfunctionPhoto,
+        description: inspection.description,
+        description_photo: inspection.descriptionPhoto || null,
+        functioning: inspection.functioning,
+        malfunction_description: inspection.malfunctionDescription || null,
+        malfunction_photo: inspection.malfunctionPhoto || null,
         next_date: inspection.nextDate,
         date: new Date().toISOString()
       };
@@ -482,12 +559,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateInspection = async (inspection: Inspection) => {
     try {
       const updateData = {
-        ...inspection,
         equipment_id: inspection.equipmentId,
-        description_photo: inspection.descriptionPhoto,
-        malfunction_description: inspection.malfunctionDescription,
-        malfunction_photo: inspection.malfunctionPhoto,
-        next_date: inspection.nextDate
+        description: inspection.description,
+        description_photo: inspection.descriptionPhoto || null,
+        functioning: inspection.functioning,
+        malfunction_description: inspection.malfunctionDescription || null,
+        malfunction_photo: inspection.malfunctionPhoto || null,
+        next_date: inspection.nextDate,
+        date: inspection.date
       };
 
       const { error } = await supabase
